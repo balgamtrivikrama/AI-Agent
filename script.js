@@ -76,21 +76,13 @@ function injectAPIConfig(code) {
   return modifiedCode;
 }
 
-async function callAPI(description) {
-  if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
-    throw new Error('Please set your API key in script.js file (line 4)');
-  }
 
-  const payload = {
-    model: 'gpt-4o-mini-2024-07-18',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are an expert web developer. Generate complete, working HTML files with embedded CSS and JavaScript. Always include functional API integrations where needed.'
-      },
-      {
-        role: 'user',
-        content: `Create a complete, working single HTML file for: ${description}
+
+
+SYSTEM_PROMPT = `
+
+You are an expert web developer. Generate complete, working HTML files with embedded CSS and JavaScript. Always include functional API integrations where needed.
+
 
 CRITICAL REQUIREMENTS:
 1. Return ONLY pure HTML code - no markdown, no explanations, no code blocks
@@ -100,16 +92,46 @@ CRITICAL REQUIREMENTS:
 5. Must be fully functional and interactive
 6. Modern, clean design with good UX
 7. If the app needs an API (like PDF summarizer, weather app, etc.):
-   - Use this EXACT API configuration:
-     * API Endpoint: const API_ENDPOINT = 'API_ENDPOINT_PLACEHOLDER';
-     * API Key: const API_KEY = 'YOUR_API_KEY_HERE';
    - Include full working API integration code
    - For PDF: Use PDF.js from CDN: https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js
    - For PDF: Extract text and send to API for real summarization
 8. Include proper error handling and loading states
 9. No external dependencies except CDN libraries where necessary
 
-Start directly with <!DOCTYPE html> and end with </html>`
+Start directly with <!DOCTYPE html> and end with </html>
+
+LLM Foundry API Details:
+
+# Following a sample llm call using when if the application is requires llm.
+'''js
+const response = await fetch("https://llmfoundry.straive.com/openai/v1/chat/completions", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  credentials: "include",
+  body: JSON.stringify({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: "What is 2 + 2" }],
+  }),
+});
+await response.json()
+'''
+## Instructions: 
+1. Use only the provided LLM Foundry fetch API to call code in the generated code if the application requires llm.
+2. We don;t need API key in the generated code. use Credentials: "include" in the headers so it will automatically use the token from logged in user
+
+`
+
+async function callAPI(description) {
+  const payload = {
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: SYSTEM_PROMPT
+      },
+      {
+        role: 'user',
+        content: `Create a complete, working single HTML file for: ${description}`
       }
     ],
     temperature: 0.7
@@ -119,8 +141,9 @@ Start directly with <!DOCTYPE html> and end with </html>`
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`
+      // 'Authorization': `Bearer ${API_KEY}`
     },
+    credentials: "include",
     body: JSON.stringify(payload)
   });
 
@@ -214,9 +237,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('✅ AI App Generator loaded');
   console.log('🔗 Using endpoint:', API_ENDPOINT);
 
-  API_KEY =  await fetch("https://llmfoundry.straive.com/token", { credentials: "include" }).then((r) => r.json());
-
-  if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
-    showError('⚠️ Please add your API key in script.js');
-  }
 });
