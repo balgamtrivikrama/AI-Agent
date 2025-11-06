@@ -7,7 +7,7 @@
 let generatedCode = '';
 
 // ✅ OpenAI-style Foundry Configuration
-const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhbGdhbS50cml2aWtyYW1hQHN0cmFpdmUuY29tIn0.W4PdAoqvbXuIVpJ7Nva3iiacvfIi5xECFEYaLTc-878'; // 🔐 Replace with actual bearer token
+let API_KEY = ""
 const API_ENDPOINT = 'https://llmfoundry.straive.com/openai/v1/chat/completions';
 
 // 🔧 Example templates
@@ -210,9 +210,11 @@ function hideError() {
   if (error) error.classList.remove('active');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('✅ AI App Generator loaded');
   console.log('🔗 Using endpoint:', API_ENDPOINT);
+
+  API_KEY =  await fetch("https://llmfoundry.straive.com/token", { credentials: "include" }).then((r) => r.json());
 
   if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
     showError('⚠️ Please add your API key in script.js');
