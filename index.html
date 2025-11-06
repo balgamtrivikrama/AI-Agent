@@ -1,0 +1,87 @@
+<!-- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI App Generator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>🧠 Describe Your App</h1>
+  <div class="split-screen">
+    <div class="left-panel">
+      <textarea id="userPrompt" placeholder="Describe your app (e.g. PDF summarizer)..."></textarea>
+      <button onclick="generateApp()">Generate Code</button>
+      <button onclick="previewApp()">Preview App</button>
+    </div>
+    <div class="right-panel">
+      <h3>Generated HTML Code</h3>
+      <pre id="codeOutput"></pre>
+    </div>
+  </div>
+  <iframe id="previewFrame" style="display:none;"></iframe>
+  <script src="script.js"></script>
+</body>
+</html>  -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI App Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI App Generator</h1>
+            <p>Describe any app and generate it instantly</p>
+        </header>
+
+        <div class="input-section">
+            <label for="appDescription">Describe your app:</label>
+            <textarea 
+                id="appDescription" 
+                placeholder="Example: Create a todo list app with add, delete, and mark complete features..."
+                rows="4"
+            ></textarea>
+            
+            <div class="examples">
+                <p>Quick Examples:</p>
+                <button class="example-btn" onclick="setExample('todo')">Todo List</button>
+                <button class="example-btn" onclick="setExample('calculator')">Calculator</button>
+                <button class="example-btn" onclick="setExample('weather')">Weather App</button>
+                <button class="example-btn" onclick="setExample('timer')">Timer/Stopwatch</button>
+            </div>
+
+            <button class="generate-btn" onclick="generateApp()">Generate App</button>
+            
+            <div class="loading" id="loading">Generating your app...</div>
+            <div class="error" id="error"></div>
+        </div>
+
+        <div class="split-container">
+            <div class="code-section">
+                <div class="section-header">
+                    <h3>Generated Code</h3>
+                    <button onclick="copyCode()">Copy Code</button>
+                </div>
+                <pre id="codeDisplay">// Your code will appear here...</pre>
+            </div>
+
+            <div class="preview-section">
+                <div class="section-header">
+                    <h3>Live Preview</h3>
+                    <button onclick="openInNewTab()">Open in New Tab</button>
+                </div>
+                <iframe id="previewFrame"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
