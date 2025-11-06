@@ -1,57 +1,28 @@
-// async function generateApp() {
-//   const prompt = document.getElementById('userPrompt').value;
-//   const codeOutput = document.getElementById('codeOutput');
-//   codeOutput.textContent = 'Generating...';
+// let generatedCode = '';
 
-//   // Replace with your OpenAI API key
-//   const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhbGdhbS50cml2aWtyYW1hQHN0cmFpdmUuY29tIn0.W4PdAoqvbXuIVpJ7Nva3iiacvfIi5xECFEYaLTc-878';
-
-//   const response = await fetch('https://llmfoundry.straive.com/azure/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-05-01-preview', {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json',
-//       'Authorization': `Bearer ${apiKey}`
-//     },
-//     body: JSON.stringify({
-//       model: 'gpt-4o-mini',
-//       messages: [
-//         { role: 'system', content: 'You are a helpful assistant that generates HTML apps based on user descriptions.' },
-//         { role: 'user', content: `Create a simple HTML app for: ${prompt}` }
-//       ],
-//       temperature: 0.5
-//     })
-//   });
-
-//   const data = await response.json();
-//   const htmlCode = data.choices?.[0]?.message?.content || 'No code generated.';
-//   codeOutput.textContent = htmlCode;
-// }
-
-// function previewApp() {
-//   const htmlCode = document.getElementById('codeOutput').textContent;
-//   const previewFrame = document.getElementById('previewFrame');
-//   const blob = new Blob([htmlCode], { type: 'text/html' });
-//   const url = URL.createObjectURL(blob);
-//   previewFrame.src = url;
-//   previewFrame.style.display = 'block';
-// }
+// // YOUR API CONFIGURATION - Replace these with your actual values
+// const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhbGdhbS50cml2aWtyYW1hQHN0cmFpdmUuY29tIn0.W4PdAoqvbXuIVpJ7Nva3iiacvfIi5xECFEYaLTc-878';
+// const API_ENDPOINT = 'https://llmfoundry.straive.com/azure/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-05-01-preview'; // Your LLM Foundry endpoint
 
 let generatedCode = '';
 
-// Example templates
+// ✅ OpenAI-style Foundry Configuration
+const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhbGdhbS50cml2aWtyYW1hQHN0cmFpdmUuY29tIn0.W4PdAoqvbXuIVpJ7Nva3iiacvfIi5xECFEYaLTc-878'; // 🔐 Replace with actual bearer token
+const API_ENDPOINT = 'https://llmfoundry.straive.com/openai/v1/chat/completions';
+
+// 🔧 Example templates
 const examples = {
   todo: 'Create a todo list app where users can add tasks, mark them complete with checkboxes, and delete tasks. Store tasks in localStorage.',
   calculator: 'Build a calculator app with buttons for numbers 0-9 and operations +, -, *, /. Include equals button and clear button.',
   weather: 'Create a weather app that shows temperature, humidity, and weather condition for a city. Use a weather API.',
-  timer: 'Build a timer/stopwatch app with start, stop, reset buttons. Display time in minutes and seconds.'
+  timer: 'Build a timer/stopwatch app with start, stop, reset buttons. Display time in minutes and seconds.',
+  pdf: 'Create a PDF summarizer that allows users to upload a PDF file and generates a concise summary of its content.'
 };
 
-// Set example description
 function setExample(type) {
   document.getElementById('appDescription').value = examples[type];
 }
 
-// Main function to generate app
 async function generateApp() {
   const description = document.getElementById('appDescription').value.trim();
   if (!description) return showError('Please enter an app description!');
@@ -60,92 +31,128 @@ async function generateApp() {
   hideError();
 
   try {
-    let code = await callOpenAI(description);
-    code = injectLocalSummarizer(code); // Replace placeholder fetch with local call
+    let code = await callAPI(description);
+    code = injectAPIConfig(code);
     generatedCode = code;
     displayCode(code);
     updatePreview(code);
   } catch (error) {
     showError('Failed to generate app: ' + error.message);
+    console.error('Error details:', error);
   } finally {
     showLoading(false);
   }
 }
 
-// Call OpenAI API directly
-async function callOpenAI(text) {
-  const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhbGdhbS50cml2aWtyYW1hQHN0cmFpdmUuY29tIn0.W4PdAoqvbXuIVpJ7Nva3iiacvfIi5xECFEYaLTc-878'; // Replace with your actual key
+function injectAPIConfig(code) {
+  const keyReplacements = [
+    'YOUR_API_KEY',
+    'YOUR_OPENAI_API_KEY',
+    'YOUR_API_KEY_HERE',
+    'YOUR_OPENAI_API_KEY_HERE',
+    'sk-your-api-key-here',
+    'your-api-key-here',
+    'Bearer YOUR_API_KEY_HERE'
+  ];
 
-  const prompt = `
-Generate a complete HTML app based on this description:
-"${text}"
+  let modifiedCode = code;
 
-Include:
-- Full HTML structure
-- Inline CSS for layout and styling
-- JavaScript for functionality
-- No external libraries
-- Make it runnable in a browser
-`;
+  keyReplacements.forEach(placeholder => {
+    const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    modifiedCode = modifiedCode.replace(new RegExp(escaped, 'g'), API_KEY);
+  });
 
-  const response = await fetch('https://llmfoundry.straive.com/azure/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-05-01-preview', {
+  const endpointReplacements = [
+    'https://api.openai.com/v1/chat/completions',
+    'https://api.openai.com/v1/engines/davinci-codex/completions',
+    'https://api.openai.com/v1/completions'
+  ];
+
+  endpointReplacements.forEach(endpoint => {
+    const escaped = endpoint.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    modifiedCode = modifiedCode.replace(new RegExp(escaped, 'g'), API_ENDPOINT);
+  });
+
+  return modifiedCode;
+}
+
+async function callAPI(description) {
+  if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
+    throw new Error('Please set your API key in script.js file (line 4)');
+  }
+
+  const payload = {
+    model: 'gpt-4o-mini-2024-07-18',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an expert web developer. Generate complete, working HTML files with embedded CSS and JavaScript. Always include functional API integrations where needed.'
+      },
+      {
+        role: 'user',
+        content: `Create a complete, working single HTML file for: ${description}
+
+CRITICAL REQUIREMENTS:
+1. Return ONLY pure HTML code - no markdown, no explanations, no code blocks
+2. Complete HTML structure with <!DOCTYPE html>
+3. All CSS must be in <style> tags in the <head>
+4. All JavaScript must be in <script> tags at the end of <body>
+5. Must be fully functional and interactive
+6. Modern, clean design with good UX
+7. If the app needs an API (like PDF summarizer, weather app, etc.):
+   - Use this EXACT API configuration:
+     * API Endpoint: const API_ENDPOINT = 'API_ENDPOINT_PLACEHOLDER';
+     * API Key: const API_KEY = 'YOUR_API_KEY_HERE';
+   - Include full working API integration code
+   - For PDF: Use PDF.js from CDN: https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js
+   - For PDF: Extract text and send to API for real summarization
+8. Include proper error handling and loading states
+9. No external dependencies except CDN libraries where necessary
+
+Start directly with <!DOCTYPE html> and end with </html>`
+      }
+    ],
+    temperature: 0.7
+  };
+
+  const response = await fetch(API_ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      'Authorization': `Bearer ${API_KEY}`
     },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: 'You are a helpful assistant that generates complete HTML apps based on user descriptions.' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.5
-    })
+    body: JSON.stringify(payload)
   });
 
-  if (!response.ok) throw new Error('OpenAI API request failed');
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || 'No code generated.';
-}
+  console.log('🔍 API Response:', data);
 
-// Inject local summarizer into generated code
-function injectLocalSummarizer(code) {
-  const summarizerFunction = `
-<script>
-  async function summarizeText(text) {
-    const response = await fetch('https://llmfoundry.straive.com/azure/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-05-01-preview', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhbGdhbS50cml2aWtyYW1hQHN0cmFpdmUuY29tIn0.W4PdAoqvbXuIVpJ7Nva3iiacvfIi5xECFEYaLTc-878' // Replace with your actual key
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are a helpful assistant that summarizes text.' },
-          { role: 'user', content: 'Summarize this:\\n' + text }
-        ],
-        temperature: 0.5
-      })
-    });
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || 'No summary generated.';
+  if (!response.ok || !data.choices || !data.choices[0]?.message?.content) {
+    throw new Error(data.error?.message || 'Invalid response from API');
   }
-</script>
-`;
 
-  // Inject before closing </body> tag
-  return code.replace('</body>', summarizerFunction + '\n</body>');
+  let code = data.choices[0].message.content;
+
+  code = code.replace(/```html\n?/g, '')
+             .replace(/```\n?/g, '')
+             .replace(/^html\n/g, '')
+             .trim();
+
+  if (!code.startsWith('<!DOCTYPE')) {
+    const doctypeIndex = code.indexOf('<!DOCTYPE');
+    if (doctypeIndex > 0) {
+      code = code.substring(doctypeIndex);
+    }
+  }
+
+  code = code.replace(/API_ENDPOINT_PLACEHOLDER/g, API_ENDPOINT);
+  return code;
 }
 
-// Display code in code panel
 function displayCode(code) {
   document.getElementById('codeDisplay').textContent = code;
 }
 
-// Update preview iframe
 function updatePreview(code) {
   const iframe = document.getElementById('previewFrame');
   const doc = iframe.contentDocument || iframe.contentWindow.document;
@@ -155,33 +162,59 @@ function updatePreview(code) {
   iframe.style.display = 'block';
 }
 
-// Copy code to clipboard
 function copyCode() {
+  if (!generatedCode) {
+    showError('No code generated yet!');
+    return;
+  }
+
   navigator.clipboard.writeText(generatedCode).then(() => {
-    alert('Code copied to clipboard!');
+    alert('✓ Code copied to clipboard!');
+  }).catch(err => {
+    showError('Failed to copy code: ' + err.message);
   });
 }
 
-// Open preview in new tab
 function openInNewTab() {
+  if (!generatedCode) {
+    showError('No code generated yet!');
+    return;
+  }
   const newWindow = window.open();
-  newWindow.document.write(generatedCode);
-  newWindow.document.close();
+  if (newWindow) {
+    newWindow.document.write(generatedCode);
+    newWindow.document.close();
+  } else {
+    showError('Please allow pop-ups to open preview in new tab');
+  }
 }
 
-// Show loading state
 function showLoading(show) {
-  document.getElementById('loading').style.display = show ? 'block' : 'none';
+  const loading = document.getElementById('loading');
+  if (loading) {
+    loading.classList.toggle('active', show);
+  }
 }
 
-// Show error message
 function showError(message) {
   const error = document.getElementById('error');
-  error.textContent = message;
-  error.style.display = 'block';
+  if (error) {
+    error.textContent = message;
+    error.classList.add('active');
+    setTimeout(hideError, 8000);
+  }
 }
 
-// Hide error message
 function hideError() {
-  document.getElementById('error').style.display = 'none';
+  const error = document.getElementById('error');
+  if (error) error.classList.remove('active');
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('✅ AI App Generator loaded');
+  console.log('🔗 Using endpoint:', API_ENDPOINT);
+
+  if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
+    showError('⚠️ Please add your API key in script.js');
+  }
+});
