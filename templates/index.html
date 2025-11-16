@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI App Generator</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>AI App Generator</h1>
+      <p>Describe any app and generate it instantly using LLM Foundry</p>
+    </header>
+
+    <!-- Input Section -->
+    <div class="input-section">
+      <label for="appDescription">Describe your app:</label>
+      <textarea id="appDescription"
+        placeholder="Example: Create a PDF summarizer app..."
+        rows="4"></textarea>
+
+      <div class="examples">
+        <p>Quick Examples:</p>
+        <button class="example-btn" onclick="setExample('todo')">Todo List</button>
+        <button class="example-btn" onclick="setExample('calculator')">Calculator</button>
+        <button class="example-btn" onclick="setExample('weather')">Weather App</button>
+        <button class="example-btn" onclick="setExample('pdf')">PDF Summarizer</button>
+      </div>
+
+      <button class="generate-btn" onclick="generateApp()">Generate App</button>
+      <div class="loading" id="loading">Generating your app...</div>
+      <div class="error" id="error"></div>
+    </div>
+
+    <!-- Split Layout -->
+    <div class="split-container">
+      <div class="code-section">
+        <div class="section-header">
+          <h3>Generated Code</h3>
+          <button onclick="copyCode()">Copy Code</button>
+        </div>
+        <pre id="codeDisplay">// Your code will appear here...</pre>
+      </div>
+
+      <div class="preview-section">
+        <div class="section-header">
+          <h3>Live Preview</h3>
+          <button onclick="openInNewTab()">Open in New Tab</button>
+        </div>
+        <iframe id="previewFrame"></iframe>
+      </div>
+    </div>
+
+    <!-- HITL Rectify -->
+    <div id="rectifySection" style="display:none; text-align:center; margin:20px 0;">
+      <button id="rectifyBtn" class="rectify-btn" onclick="rectifyCode()">🔧 Rectify / Improve Code</button>
+    </div>
+
+    <!-- Popup -->
+    <div id="rectifyPopup" class="popup">
+      <div class="popup-content">
+        <h3>💬 Suggest a Correction</h3>
+        <textarea id="rectifyInput"
+          placeholder="Example: Add dark mode or fix layout..."
+          rows="5"></textarea>
+        <div class="popup-buttons">
+          <button id="rectifySubmit" onclick="submitRectification()">Submit</button>
+          <button id="rectifyCancel" onclick="closeRectifyPopup()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global source of truth
+    window.generatedCode = window.generatedCode || '';
+    const API_ENDPOINT = '/generate'; // Use relative path for the API endpoint
+    const RECTIFY_ENDPOINT = '/rectify';
+
+    // Example prompts
+    const examples = {
+      todo: 'Create a todo list app where users can add, complete, and delete tasks.',
+      calculator: 'Build a calculator app with basic arithmetic operations.',
+      weather: 'Create a weather app showing temperature and humidity for a city.',
+      timer: 'Build a timer/stopwatch app with start, stop, and reset.',
+      pdf: 'Create a PDF summarizer app that uploads a PDF, extracts text, and summarizes it using the LLM Foundry API.'
+    };
+
+    // ============= Main Logic =============
+    function setExample(type) {
+      document.getElementById('appDescription').value = examples[type];
+    }
+
+    async function generateApp() {
+      const desc = document.getElementById('appDescription').value.trim();
+      if (!desc) return showError('Please enter an app description!');
+
+      showLoading(true);
+      hideError();
+
+      try {
+        const response = await fetch(API_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description: desc })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to generate app');
+        }
+
+        const data = await response.json();
+        const code = data.code;
+        window.generatedCode = code;
+        displayCode(code);
+        updatePreview(code);
+        showRectifyButton();
+      } catch (e) {
+        showError('Failed to generate app: ' + (e?.message || e));
+        console.error(e);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // ============= UI Helpers =============
+    function copyCode() {
+      if (!window.generatedCode) return showError('No code generated yet!');
+      navigator.clipboard.writeText(window.generatedCode)
+        .then(() => alert('✓ Code copied!'))
+        .catch(e => showError('Copy failed: ' + e.message));
+    }
+
+    function openInNewTab() {
+      if (!window.generatedCode) return showError('No code generated yet!');
+      const w = window.open();
+      w.document.write(window.generatedCode);
+      w.document.close();
+    }
+
+    function displayCode(code) {
+      const el = document.getElementById('codeDisplay');
+      if (el) el.textContent = code;
+    }
+
+    function updatePreview(code) {
+      const iframe = document.getElementById('previewFrame');
+      if (!iframe) return;
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(code);
+      doc.close();
+    }
+
+    function showLoading(show) {
+      const l = document.getElementById('loading');
+      if (l) l.classList.toggle('active', show);
+    }
+
+    function showError(msg) {
+      const e = document.getElementById('error');
+      if (e) {
+        e.textContent = msg;
+        e.classList.add('active');
+        setTimeout(() => e.classList.remove('active'), 6000);
+      } else console.warn(msg);
+    }
+
+    function hideError() {
+      const e = document.getElementById('error');
+      if (e) e.classList.remove('active');
+    }
+
+    // expose for HITL
+    function showRectifyButton() {
+        const section = document.getElementById("rectifySection");
+        if (section)
+            section.style.display = "block";
+    }
+
+    function rectifyCode() {
+        if (!generatedCode) {
+            showError("No code available to improve.");
+            return;
+        }
+        const popup = document.getElementById("rectifyPopup");
+        if (popup)
+            popup.style.display = "flex";
+    }
+
+    async function submitRectification() {
+        const inputEl = document.getElementById("rectifyInput");
+        if (!inputEl) return;
+        const feedback = inputEl.value.trim();
+        if (!feedback) {
+            showError("Please describe what to fix.");
+            return;
+        }
+        const popup = document.getElementById("rectifyPopup");
+        if (popup) popup.style.display = "none";
+        showLoading(true);
+        hideError();
+
+        try {
+            const response = await fetch(RECTIFY_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: generatedCode, feedback: feedback })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to refine code");
+            }
+
+            const data = await response.json();
+            const cleanedCode = data.code;
+
+            if (!cleanedCode) {
+                throw new Error("No improved code received.");
+            }
+
+            generatedCode = cleanedCode;
+            displayCode(cleanedCode);
+            updatePreview(cleanedCode);
+            showError("✅ Code improved based on your feedback!");
+
+        } catch (err) {
+            showError("Failed to refine code: " + err.message);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function closeRectifyPopup() {
+        const popup = document.getElementById("rectifyPopup");
+        if (popup) popup.style.display = "none";
+    }
+
+    Object.assign(window, { generateApp, setExample, copyCode, openInNewTab,
+      showRectifyButton, rectifyCode, submitRectification, closeRectifyPopup });
+
+  </script>
+</body>
+</html>

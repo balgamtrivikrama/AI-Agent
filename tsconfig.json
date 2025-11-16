@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es2017",           // allows async/await
+    "lib": ["es2017", "dom"],     // include Promise + browser APIs
+    "module": "esnext",
+    "moduleResolution": "node",
+    "outDir": "./",               // compiled JS goes in same folder
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["*.ts"]
+}
+

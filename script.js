@@ -1,12 +1,5 @@
-// let generatedCode = '';
-
-// // YOUR API CONFIGURATION - Replace these with your actual values
-// const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhbGdhbS50cml2aWtyYW1hQHN0cmFpdmUuY29tIn0.W4PdAoqvbXuIVpJ7Nva3iiacvfIi5xECFEYaLTc-878';
-// const API_ENDPOINT = 'https://llmfoundry.straive.com/azure/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-05-01-preview'; // Your LLM Foundry endpoint
 
 let generatedCode = '';
-
-// ✅ OpenAI-style Foundry Configuration
 let API_KEY = ""
 const API_ENDPOINT = 'https://llmfoundry.straive.com/openai/v1/chat/completions';
 
@@ -79,7 +72,7 @@ function injectAPIConfig(code) {
 
 
 
-SYSTEM_PROMPT = `
+const SYSTEM_PROMPT = `
 
 You are an expert web developer. Generate complete, working HTML files with embedded CSS and JavaScript. Always include functional API integrations where needed.
 
@@ -238,3 +231,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('🔗 Using endpoint:', API_ENDPOINT);
 
 });
+
+
