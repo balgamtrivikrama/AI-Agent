@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI App Generator</title>
+  <!-- <link rel="stylesheet" href="../static/style.css"> -->
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -75,8 +76,10 @@
   <script>
     // Global source of truth
     window.generatedCode = window.generatedCode || '';
-    const API_ENDPOINT = '/generate'; // Use relative path for the API endpoint
-    const RECTIFY_ENDPOINT = '/rectify';
+    // const BACKEND_API_URL = "http://localhost:5000" 
+    const BACKEND_API_URL = ""
+    const API_ENDPOINT = BACKEND_API_URL+ '/generate'; // Use relative path for the API endpoint
+    const RECTIFY_ENDPOINT = BACKEND_API_URL + '/rectify';
 
     // Example prompts
     const examples = {
