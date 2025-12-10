@@ -1,61 +1,93 @@
-
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI App Generator</title>
-    <link rel="stylesheet" href="style.css">
+    <title>PDF Summarizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+        }
+        h1 {
+            color: #333;
+        }
+        input[type="file"] {
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        #summary {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: white;
+            border-radius: 5px;
+            min-height: 100px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>AI App Generator</h1>
-            <p>Describe any app and generate it instantly</p>
-        </header>
+    <h1>PDF Summarizer</h1>
+    <input type="file" id="pdfFile" accept=".pdf">
+    <button id="summarizeBtn">Summarize PDF</button>
+    <div id="summary"></div>
 
-        <div class="input-section">
-            <label for="appDescription">Describe your app:</label>
-            <textarea 
-                id="appDescription" 
-                placeholder="Example: Create a todo list app with add, delete, and mark complete features..."
-                rows="4"
-            ></textarea>
-            
-            <div class="examples">
-                <p>Quick Examples:</p>
-                <button class="example-btn" onclick="setExample('todo')">Todo List</button>
-                <button class="example-btn" onclick="setExample('calculator')">Calculator</button>
-                <button class="example-btn" onclick="setExample('weather')">Weather App</button>
-                <button class="example-btn" onclick="setExample('timer')">Timer/Stopwatch</button>
-            </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        document.getElementById('summarizeBtn').addEventListener('click', async () => {
+            const pdfFile = document.getElementById('pdfFile').files[0];
+            if (!pdfFile) {
+                alert('Please upload a PDF file.');
+                return;
+            }
 
-            <button class="generate-btn" onclick="generateApp()">Generate App</button>
-            
-            <div class="loading" id="loading">Generating your app...</div>
-            <div class="error" id="error"></div>
-        </div>
+            const text = await extractTextFromPDF(pdfFile);
+            const summary = await getSummaryFromLLM(text);
+            document.getElementById('summary').innerText = summary;
+        });
 
-        <div class="split-container">
-            <div class="code-section">
-                <div class="section-header">
-                    <h3>Generated Code</h3>
-                    <button onclick="copyCode()">Copy Code</button>
-                </div>
-                <pre id="codeDisplay">// Your code will appear here...</pre>
-            </div>
+        async function extractTextFromPDF(file) {
+            const pdfData = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({data: pdfData}).promise;
+            let fullText = '';
 
-            <div class="preview-section">
-                <div class="section-header">
-                    <h3>Live Preview</h3>
-                    <button onclick="openInNewTab()">Open in New Tab</button>
-                </div>
-                <iframe id="previewFrame"></iframe>
-            </div>
-        </div>
-    </div>
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + ' ';
+            }
 
-    <script src="script.js"></script>
+            return fullText.trim();
+        }
+
+        async function getSummaryFromLLM(text) {
+            const response = await fetch("https://llmfoundry.straive.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [{ role: "user", content: text }],
+                }),
+            });
+
+            const data = await response.json();
+            return data.choices[0].message.content || "Summary not available.";
+        }
+    </script>
 </body>
-</html>  
-
+</html>
