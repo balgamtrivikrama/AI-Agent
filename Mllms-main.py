@@ -33,7 +33,7 @@ if not API_ENDPOINT or not API_KEY:
 
 
 # ================================================================
-# 0️⃣  INIT OPENAI CLIENT (NEW)
+#  INIT OPENAI CLIENT (NEW)
 # ================================================================
 openai_client = AsyncOpenAI(
     api_key=os.getenv("LLMFOUNDRY_API_KEY"),      # from your config
@@ -52,7 +52,7 @@ def convert_messages(messages: list) -> str:
 
 
 # ================================================================
-# 1️⃣  REQUIREMENT EXTRACTION
+# REQUIREMENT EXTRACTION
 # ================================================================
 def extract_requirements(description: str):
     return {
@@ -64,7 +64,7 @@ def extract_requirements(description: str):
 
 
 # ================================================================
-# 2️⃣  SYSTEM PROMPT BUILDER
+#  SYSTEM PROMPT BUILDER
 # ================================================================
 def build_system_prompt(requirements: dict) -> str:
     base_prompt = """
@@ -120,7 +120,7 @@ await response.json()
 
 
 # ================================================================
-# 3️⃣  LLM CALL FUNCTION  (REWRITTEN)
+#   LLM CALL FUNCTION  (REWRITTEN)
 # ================================================================
 async def call_llm(description:str="",messages=None):
     try:
@@ -145,7 +145,7 @@ async def call_llm(description:str="",messages=None):
 
 
 # ================================================================
-# 4️⃣  CLEAN HTML
+#  CLEAN HTML
 # ================================================================
 def clean_html(raw_output: str) -> str:
     if "```html" in raw_output:
@@ -156,7 +156,7 @@ def clean_html(raw_output: str) -> str:
 
 
 # ================================================================
-# 5️⃣  ROUTES
+#   ROUTES
 # ================================================================
 
 @app.get("/", response_class=HTMLResponse)

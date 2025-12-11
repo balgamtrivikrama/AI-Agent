@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI App Generator</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/github-style.css">
 </head>
 
 <body>
@@ -35,10 +35,26 @@
         <button class="rectify-btn" id="rectifyBtnTop" onclick="rectifyCode()" style="display:none;">
           Rectify / Improve Code
         </button>
+        <button class="deploy-btn" onclick="deployToGithub()">
+          Deploy to GitHub
+        </button>
       </div>
 
-      <div class="loading" id="loading">Generating your app...</div>
+      <div class="loading" id="loading">Working...</div>
       <div class="error" id="error"></div>
+
+      <div id="deployInfo" class="deploy-info" style="display:none; margin-top: 10px;">
+        <p>Last deployment:</p>
+        <p>
+          <a id="repoLink" href="#" target="_blank" style="display:none; margin-right: 10px;">
+            View Repository
+          </a>
+          <a id="liveLink" href="#" target="_blank" style="display:none;">
+            View Deployed App
+          </a>
+        </p>
+        <p id="deployedFile" style="font-size: 0.9rem; color: #555;"></p>
+      </div>
     </div>
 
     <!-- Split Layout -->
@@ -51,7 +67,6 @@
         <pre id="codeDisplay">// Your code will appear here...</pre>
       </div>
 
-      <!-- Draggable Divider -->
       <div class="resizer" id="resizer"></div>
 
       <div class="preview-section">
@@ -79,13 +94,16 @@
     </div>
   </div>
 
-  <!-- SCRIPT -->
   <script>
     window.generatedCode = window.generatedCode || '';
+    window.repoUrl = null;
+    window.pagesUrl = null;
+    window.deployedFilename = null;
 
     const BACKEND_API_URL = "";
     const API_ENDPOINT = BACKEND_API_URL + '/generate';
     const RECTIFY_ENDPOINT = BACKEND_API_URL + '/rectify';
+    const DEPLOY_ENDPOINT = BACKEND_API_URL + '/deploy';
 
     const examples = {
       todo: 'Create a todo list app where users can add, complete, and delete tasks.',
@@ -103,8 +121,9 @@
       const desc = document.getElementById('appDescription').value.trim();
       if (!desc) return showError('Please enter an app description!');
 
-      showLoading(true);
+      showLoading(true, "Generating your app...");
       hideError();
+      hideDeployInfo();
 
       try {
         const response = await fetch(API_ENDPOINT, {
@@ -114,14 +133,21 @@
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to generate app');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || errorData.detail || 'Failed to generate app');
         }
 
         const data = await response.json();
         const code = data.code;
 
         window.generatedCode = code;
+        window.repoUrl = null;
+        window.pagesUrl = null;
+        window.deployedFilename = null;
+
+        // keep compatibility with rectifyCode
+        generatedCode = code;
+
         displayCode(code);
         updatePreview(code);
         document.getElementById("rectifyBtnTop").style.display = "inline-block";
@@ -133,31 +159,73 @@
       }
     }
 
+    async function deployToGithub() {
+      if (!window.generatedCode) {
+        return showError("Please generate an app before deploying to GitHub.");
+      }
+
+      const desc = document.getElementById('appDescription').value.trim() || "App";
+
+      showLoading(true, "Deploying to GitHub...");
+      hideError();
+
+      try {
+        const response = await fetch(DEPLOY_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: window.generatedCode, description: desc })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || errorData.detail || 'Failed to deploy to GitHub');
+        }
+
+        const data = await response.json();
+        window.repoUrl = data.repo_url || null;
+        window.pagesUrl = data.pages_url || null;
+        window.deployedFilename = data.filename || null;
+
+        updateDeployInfo(window.repoUrl, window.pagesUrl, window.deployedFilename);
+        showError("✓ Deployed latest generated app to GitHub.");
+
+      } catch (e) {
+        showError('Deployment failed: ' + (e?.message || e));
+      } finally {
+        showLoading(false);
+      }
+    }
+
     function copyCode() {
-      navigator.clipboard.writeText(window.generatedCode)
+      navigator.clipboard.writeText(window.generatedCode || '')
         .then(() => alert('✓ Code copied!'))
         .catch(e => showError('Copy failed: ' + e.message));
     }
 
     function openInNewTab() {
+      if (!window.generatedCode) {
+        return showError("No generated code to open.");
+      }
       const w = window.open();
       w.document.write(window.generatedCode);
       w.document.close();
     }
 
     function displayCode(code) {
-      document.getElementById('codeDisplay').textContent = code;
+      document.getElementById('codeDisplay').textContent = code || '// No code generated yet';
     }
 
     function updatePreview(code) {
       const iframeDoc = document.getElementById('previewFrame').contentDocument;
       iframeDoc.open();
-      iframeDoc.write(code);
+      iframeDoc.write(code || '');
       iframeDoc.close();
     }
 
-    function showLoading(show) {
-      document.getElementById('loading').classList.toggle('active', show);
+    function showLoading(show, text) {
+      const loadingEl = document.getElementById('loading');
+      if (text) loadingEl.textContent = text;
+      loadingEl.classList.toggle('active', show);
     }
 
     function showError(msg) {
@@ -171,6 +239,11 @@
       document.getElementById('error').classList.remove('active');
     }
 
+    function hideDeployInfo() {
+      document.getElementById('deployInfo').style.display = 'none';
+    }
+
+    // -------- RECTIFICATION (unchanged behavior) --------
     function rectifyCode() {
       if (!generatedCode) return showError("No code available to improve.");
       document.getElementById("rectifyPopup").style.display = "flex";
@@ -181,7 +254,7 @@
       if (!feedback) return showError("Please describe what to fix.");
 
       document.getElementById("rectifyPopup").style.display = "none";
-      showLoading(true);
+      showLoading(true, "Improving code...");
       hideError();
 
       try {
@@ -193,6 +266,8 @@
 
         const data = await response.json();
         generatedCode = data.code;
+        window.generatedCode = data.code;
+
         displayCode(generatedCode);
         updatePreview(generatedCode);
         showError("✓ Code improved based on your feedback!");
@@ -208,15 +283,44 @@
       document.getElementById("rectifyPopup").style.display = "none";
     }
 
+    // -------- Deploy info section --------
+    function updateDeployInfo(repoUrl, pagesUrl, filename) {
+      const info = document.getElementById('deployInfo');
+      const repoLink = document.getElementById('repoLink');
+      const liveLink = document.getElementById('liveLink');
+      const fileText = document.getElementById('deployedFile');
+
+      if (repoUrl) {
+        repoLink.href = repoUrl;
+        repoLink.style.display = 'inline-block';
+      } else {
+        repoLink.style.display = 'none';
+      }
+
+      if (pagesUrl) {
+        liveLink.href = pagesUrl;
+        liveLink.style.display = 'inline-block';
+      } else {
+        liveLink.style.display = 'none';
+      }
+
+      if (filename) {
+        fileText.textContent = "File: " + filename;
+      } else {
+        fileText.textContent = "";
+      }
+
+      info.style.display = (repoUrl || pagesUrl || filename) ? 'block' : 'none';
+    }
+
     /* ============================
           DRAGGABLE RESIZER
     ============================ */
     const resizer = document.getElementById("resizer");
     const container = document.getElementById("splitContainer");
-
     let isDragging = false;
 
-    resizer.addEventListener("mousedown", function (e) {
+    resizer.addEventListener("mousedown", function () {
       isDragging = true;
       document.body.style.cursor = "col-resize";
     });
